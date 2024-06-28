@@ -15,6 +15,7 @@ def main(rank, config):
 
 
 if __name__ == "__main__":
+    # Config可以接受三个参数: config_file, variable_dict, is_resume
     config = Config("./config/test_install.yaml").get_config_dict()
 
     if config["n_gpu"] > 1:

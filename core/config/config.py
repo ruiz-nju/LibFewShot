@@ -19,48 +19,52 @@ def get_cur_path():
 DEFAULT_FILE = os.path.join(get_cur_path(), "default.yaml")
 
 
-class Config(object):
-    """The config parser of `LibFewShot`.
+class Config(object):  # 继承 object 类，定义一个新式类
+    """
+    `LibFewShot` 的配置解析器。
 
-    `Config` is used to parse *.yaml, console params, run_*.py settings to python dict. The rules for resolving merge conflicts are as follows
+    `Config` 用于解析 *.yaml 文件、控制台参数和 run_*.py 设置，并将其合并为 Python 字典。合并冲突的解决规则如下：
 
-    1. The merging is recursive, if a key is not be specified, the existing value will be used.
-    2. The merge priority is console_params > run_*.py dict > user defined yaml (/LibFewShot/config/*.yaml) > default.yaml (/LibFewShot/core/config/default.yaml)
+    1. 合并是递归的，如果一个键没有被指定，将使用现有的值。
+    2. 合并优先级为：控制台参数 > run_*.py 字典 > 用户定义的 yaml (/LibFewShot/config/*.yaml) > default.yaml (/LibFewShot/core/config/default.yaml)
     """
 
     def __init__(self, config_file=None, variable_dict=None, is_resume=False):
-        """Initializing the parameter dictionary, actually completes the merging of all parameter definitions.
-
-        Args:
-            config_file: Configuration file name. (/LibFewShot/config/name.yaml)
-            variable_dict: The Variable_dict.
-            is_resume: Specifies whether to resume, the default is False.
         """
-        self.is_resume = is_resume
-        self.config_file = config_file
-        self.console_dict = self._load_console_dict()
-        self.default_dict = self._load_config_files(DEFAULT_FILE)
-        self.file_dict = self._load_config_files(config_file)
-        self.variable_dict = self._load_variable_dict(variable_dict)
-        self.config_dict = self._merge_config_dict()
+        初始化参数字典，实际上完成了所有参数定义的合并。
+
+        参数:
+            config_file: 配置文件名。(/LibFewShot/config/name.yaml)
+            variable_dict: 变量字典。
+            is_resume: 指定是否恢复，默认为 False。
+        """
+        self.is_resume = is_resume  # 是否恢复训练
+        self.config_file = config_file  # 配置文件名
+        self.console_dict = self._load_console_dict()  # 加载控制台参数
+        self.default_dict = self._load_config_files(DEFAULT_FILE)  # 加载默认配置文件
+        self.file_dict = self._load_config_files(config_file)  # 加载指定的配置文件
+        self.variable_dict = self._load_variable_dict(variable_dict)  # 加载变量字典
+        self.config_dict = self._merge_config_dict()  # 合并配置字典
 
     def get_config_dict(self):
-        """Returns the merged dict.
+        """
+        返回合并后的配置字典。
 
-        Returns:
-            dict: A dict of LibFewShot setting.
+        返回:
+            dict: 一个包含 LibFewShot 设置的字典。
         """
         return self.config_dict
 
     @staticmethod
     def _load_config_files(config_file):
-        """Parse a YAML file.
+        """
+        解析 YAML 文件。
 
-        Args:
-            config_file (str): Path to yaml file.
+        参数:
+            config_file (str): yaml 文件路径。
 
-        Returns:
-            dict: A dict of LibFewShot setting.
+        返回:
+            dict: 一个包含 LibFewShot 设置的字典。
         """
         config_dict = dict()
         loader = yaml.SafeLoader
@@ -84,6 +88,7 @@ class Config(object):
                 config_dict.update(yaml.load(fin.read(), Loader=loader))
         config_file_dict = config_dict.copy()
         for include in config_dict.get("includes", []):
+            # 此处会将"./config/"拼接到路径中
             with open(os.path.join("./config/", include), "r", encoding="utf-8") as fin:
                 config_dict.update(yaml.load(fin.read(), Loader=loader))
         if config_dict.get("includes") is not None:
@@ -93,13 +98,14 @@ class Config(object):
 
     @staticmethod
     def _load_variable_dict(variable_dict):
-        """Load variable dict from run_*.py.
+        """
+        从 run_*.py 加载变量字典。
 
-        Args:
-            variable_dict (dict): Configuration dict.
+        参数:
+            variable_dict (dict): 配置字典。
 
-        Returns:
-            dict: A dict of LibFewShot setting.
+        返回:
+            dict: 一个包含 LibFewShot 设置的字典。
         """
         config_dict = dict()
         config_dict.update(variable_dict if variable_dict is not None else {})
@@ -107,10 +113,11 @@ class Config(object):
 
     @staticmethod
     def _load_console_dict():
-        """Parsing command line parameters
+        """
+        解析命令行参数
 
-        Returns:
-            dict: A dict of LibFewShot console setting.
+        返回:
+            dict: 一个包含 LibFewShot 控制台设置的字典。
         """
         parser = argparse.ArgumentParser()
         parser.add_argument("-w", "--way_num", type=int, help="way num")
@@ -156,20 +163,21 @@ class Config(object):
         parser.add_argument("-deterministic", type=bool, help="deterministic or not")
         parser.add_argument("-tag", "--tag", type=str, help="experiment tag")
         args = parser.parse_args()
-        # Remove key-None pairs
+        # 删除键值为 None 的键值对
         return {k: v for k, v in vars(args).items() if v is not None}
 
     def _recur_update(self, dic1, dic2):
-        """Merge dictionaries Recursively.
+        """
+        递归合并字典。
 
-        Used to recursively merge two dictionaries (profiles), `dic2` will overwrite the value of the same key in `dic1`.
+        用于递归地合并两个字典（配置文件），`dic2` 将覆盖 `dic1` 中相同键的值。
 
-        Args:
-            dic1 (dict): The dict to be overwritten. (low priority)
-            dic2 (dict): The dict to overwrite. (high priority)
+        参数:
+            dic1 (dict): 将被覆盖的字典。（低优先级）
+            dic2 (dict): 覆盖的字典。（高优先级）
 
-        Returns:
-            dict: Merged dict.
+        返回:
+            dict: 合并后的字典。
         """
         if dic1 is None:
             dic1 = dict()
@@ -183,16 +191,17 @@ class Config(object):
         return dic1
 
     def _update(self, dic1, dic2):
-        """Merge dictionaries.
+        """
+        合并字典。
 
-        Used to merge two dictionaries (profiles), `dic2` will overwrite the value of the same key in `dic1`.
+        用于合并两个字典（配置文件），`dic2` 将覆盖 `dic1` 中相同键的值。
 
-        Args:
-            dic1 (dict): The dict to be overwritten. (low priority)
-            dic2 (dict): The dict to overwrite. (high priority)
+        参数:
+            dic1 (dict): 将被覆盖的字典。（低优先级）
+            dic2 (dict): 覆盖的字典。（高优先级）
 
-        Returns:
-            dict: Merged dict.
+        返回:
+            dict: 合并后的字典。
         """
         if dic1 is None:
             dic1 = dict()
@@ -201,13 +210,14 @@ class Config(object):
         return dic1
 
     def _merge_config_dict(self):
-        """Merge all dictionaries.
+        """
+        合并所有字典。
 
-        1. The merging is recursive, if a key is not be specified, the existing value will be used.
-        2. The merge priority is console_params > run_*.py dict > user defined yaml (/LibFewShot/config/*.yaml) > default.yaml (/LibFewShot/core/config/default.yaml)
+        1. 合并是递归的，如果一个键没有被指定，将使用现有的值。
+        2. 合并优先级为：控制台参数 > run_*.py 字典 > 用户定义的 yaml (/LibFewShot/config/*.yaml) > default.yaml (/LibFewShot/core/config/default.yaml)
 
-        Returns:
-            dict: A LibFewShot setting dict.
+        返回:
+            dict: 一个包含 LibFewShot 设置的字典。
         """
         config_dict = dict()
         config_dict = self._update(config_dict, self.default_dict)
@@ -215,7 +225,7 @@ class Config(object):
         config_dict = self._update(config_dict, self.variable_dict)
         config_dict = self._update(config_dict, self.console_dict)
 
-        # If test_* is not defined, replace with *_num.
+        # 如果 test_* 未定义，用 *_num 代替
         if config_dict["test_way"] is None:
             config_dict["test_way"] = config_dict["way_num"]
         if config_dict["test_shot"] is None:
@@ -234,7 +244,7 @@ class Config(object):
                 )
             config_dict["port"] = port
 
-        # Modify or add some configs
+        # 修改或添加一些配置
         config_dict["resume"] = self.is_resume
         if self.is_resume:
             config_dict["resume_path"] = self.config_file[: -1 * len("/config.yaml")]
